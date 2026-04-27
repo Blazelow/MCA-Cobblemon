@@ -305,16 +305,19 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique
     private void vdx$addButtons() {
         int wx = (this.width - WIN_W) / 2, wy = (this.height - WIN_H) / 2;
+        // Back button sits in the top-left of the red bar
         addDrawableChild(ButtonWidget.builder(Text.literal("< Back"), b -> setPage(vdx$returnPage))
-                .dimensions(wx + 3, wy + 3, 36, 14).build());
-        int tx = wx + 42;
+                .dimensions(wx + 4, wy + 4, 44, 14).build());
+        // Tab buttons sit right after the Back button in the same bar
+        int tx = wx + 52;
         for (int i = 0; i < vdx$tabs.size(); i++) {
             final int idx = i;
             String label = vdx$tabs.get(i);
-            int tw = Math.min(60, this.textRenderer.getWidth(label) + 8);
+            int tw = this.textRenderer.getWidth(label) + 10;
             addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
                 vdx$activeTab = idx; vdx$selectedRow = 0;
-            }).dimensions(tx, wy + 3, tw, 14).build());
+            }).dimensions(tx, wy + 4, tw, 14).build());
+            tx += tw + 3;
         }
     }
 
@@ -350,15 +353,17 @@ public abstract class BlueprintScreenMixin extends Screen {
         Optional<Identifier> ov = VillageDexDataLoader.getOverride(b.name()).nodeItem();
         if (ov.isPresent() && Registries.ITEM.containsId(ov.get())) return new ItemStack(Registries.ITEM.get(ov.get()));
         for (Identifier id : b.requirements().keySet()) {
-            if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
+            // Check item registry first (handles modded blocks registered as items only)
             if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
+            if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
         }
         return ItemStack.EMPTY;
     }
 
     @Unique private ItemStack vdx$reqIcon(Identifier id) {
-        if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
+        // Try block first, then item (covers cases like cobblemon:pasture_block which is item-only)
         if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
+        if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
         return ItemStack.EMPTY;
     }
 
