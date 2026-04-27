@@ -3,8 +3,7 @@
   "package": "net.villagedex.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "BlueprintScreenMixin",
-    "accessor.BlueprintScreenAccessor"
+    "BlueprintScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
