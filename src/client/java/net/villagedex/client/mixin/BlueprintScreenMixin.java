@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -218,7 +219,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     // ── Mouse click on list rows ──────────────────────────────────────────────
 
     @Inject(method = "method_25402", remap = false, at = @At("HEAD"), cancellable = true)
-    private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfo ci) {
+    private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfoReturnable<Boolean> ci) {
         if (!VDX_PAGE.equals(this.page) || btn != 0) return;
         int wx = (this.width - WIN_W) / 2;
         int cy = (this.height - WIN_H) / 2 + TOP_BAR_H;
