@@ -9,20 +9,17 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.profiler.Profiler;
-import net.villagedex.client.VillageDexClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Reads from data/<namespace>/villagedex/catalog/:
- *   groups/<id>.json  → defines a tab in the Village Dex UI
- *   buildings/<id>.json → per-building overrides (nodeItem, hide)
- */
 public class VillageDexDataLoader extends JsonDataLoader implements IdentifiableResourceReloadListener {
 
     private static final Gson GSON = new Gson();
     private static final String DIRECTORY = "villagedex/catalog";
+    private static final Logger LOGGER = LoggerFactory.getLogger("villagedex");
 
     public record TabGroup(String id, String label, String matchPrefix, int priority) {}
 
@@ -39,7 +36,7 @@ public class VillageDexDataLoader extends JsonDataLoader implements Identifiable
 
     @Override
     public Identifier getFabricId() {
-        return Identifier.of(VillageDexClient.MOD_ID, "catalog_loader");
+        return Identifier.of("villagedex", "catalog_loader");
     }
 
     @Override
@@ -62,14 +59,14 @@ public class VillageDexDataLoader extends JsonDataLoader implements Identifiable
                     loadBuildingOverride(buildingType, json);
                 }
             } catch (Exception ex) {
-                VillageDexClient.LOGGER.warn("Rejected catalog entry '{}': {}", location, ex.getMessage());
+                LOGGER.warn("Rejected catalog entry '{}': {}", location, ex.getMessage());
             }
         }
 
         GROUPS.sort(Comparator.comparingInt(TabGroup::priority).reversed()
                 .thenComparingInt(g -> -g.matchPrefix().length()));
 
-        VillageDexClient.LOGGER.info("VillageDex reload: {} groups, {} building overrides", GROUPS.size(), OVERRIDES.size());
+        LOGGER.info("VillageDex reload: {} groups, {} building overrides", GROUPS.size(), OVERRIDES.size());
     }
 
     private static void loadGroup(String id, JsonObject json) {
@@ -91,8 +88,6 @@ public class VillageDexDataLoader extends JsonDataLoader implements Identifiable
         }
     }
 
-    // --- Static accessors used by the Mixin ---
-
     public static List<TabGroup> getGroups() {
         return Collections.unmodifiableList(GROUPS);
     }
@@ -103,21 +98,15 @@ public class VillageDexDataLoader extends JsonDataLoader implements Identifiable
         }
     }
 
-    /**
-     * Returns the tab label that best matches the given building type name,
-     * based on which group's matchPrefix the name starts with.
-     */
     public static String resolveTab(String buildingTypeName) {
         for (TabGroup group : GROUPS) {
             if (!group.matchPrefix().isEmpty() && buildingTypeName.startsWith(group.matchPrefix())) {
                 return group.label();
             }
         }
-        // Fallback: derive from path prefix cobblemon/ -> "Cobblemon", etc.
         if (buildingTypeName.startsWith("cobblemon/")) {
             String sub = buildingTypeName.substring("cobblemon/".length());
-            String[] parts = sub.split("/");
-            return capitalize(parts[0]);
+            return capitalize(sub.split("/")[0]);
         }
         return "General";
     }
