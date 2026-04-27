@@ -79,6 +79,14 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     @Inject(method = "setPage", remap = false, at = @At("HEAD"), cancellable = true)
     private void vdx$interceptCatalog(String pageName, CallbackInfo ci) {
+        // Restore all buttons to visible whenever we leave our page
+        if (VDX_PAGE.equals(this.page) && !VDX_PAGE.equals(pageName)) {
+            for (net.minecraft.client.gui.Element child : this.children()) {
+                if (child instanceof net.minecraft.client.gui.widget.ClickableWidget w) {
+                    w.visible = true;
+                }
+            }
+        }
         if (!"catalog".equals(pageName) || vdx$redirecting) return;
         if (this.page != null && !this.page.isBlank() && !VDX_PAGE.equals(this.page)) {
             vdx$returnPage = this.page;
@@ -93,7 +101,19 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     @Inject(method = "setPage", remap = false, at = @At("TAIL"))
     private void vdx$onPageSet(String pageName, CallbackInfo ci) {
-        if (!VDX_PAGE.equals(this.page)) return;
+        // Hide all existing MCA buttons when our page is active, restore otherwise
+        boolean isOurPage = VDX_PAGE.equals(this.page);
+        for (net.minecraft.client.gui.Element child : this.children()) {
+            if (child instanceof net.minecraft.client.gui.widget.ClickableWidget widget) {
+                // Keep our own buttons visible, hide MCA's
+                if (widget.getMessage() != null) {
+                    String msg = widget.getMessage().getString();
+                    boolean isOurs = msg.equals("< Back") || vdx$tabs.contains(msg);
+                    widget.visible = !isOurPage || isOurs;
+                }
+            }
+        }
+        if (!isOurPage) return;
         vdx$rebuild();
         vdx$addButtons();
     }
