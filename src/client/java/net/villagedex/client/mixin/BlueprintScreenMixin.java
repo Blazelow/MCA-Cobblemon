@@ -217,7 +217,7 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Mouse click on list rows ──────────────────────────────────────────────
 
-    @Inject(method = "mouseClicked", remap = false, at = @At("HEAD"), cancellable = true)
+    @Inject(method = "method_25402", remap = false, at = @At("HEAD"), cancellable = true)
     private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfo ci) {
         if (!VDX_PAGE.equals(this.page) || btn != 0) return;
         int wx = (this.width - WIN_W) / 2;
