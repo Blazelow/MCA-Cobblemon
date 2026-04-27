@@ -100,10 +100,9 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Replace renderCatalog with our Pokédex UI ─────────────────────────────
 
-    @Inject(method = "renderCatalog", remap = false, at = @At("HEAD"), cancellable = true)
-    private void vdx$renderCatalog(DrawContext ctx, CallbackInfo ci) {
+    @Inject(method = "method_25394", remap = false, at = @At("TAIL"))
+    private void vdx$render(DrawContext ctx, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!VDX_PAGE.equals(this.page)) return;
-        ci.cancel();
         vdx$tick++;
 
         int wx  = (this.width  - WIN_W) / 2;
