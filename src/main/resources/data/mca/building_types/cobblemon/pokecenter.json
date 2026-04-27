@@ -1,0 +1,12 @@
+{
+  "color": "ffff69b4",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 8,
+  "iconV": 0,
+  "noBeds": true,
+  "blocks": {
+    "cobblemon:healing_machine": 1
+  }
+}

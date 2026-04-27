@@ -1,0 +1,12 @@
+{
+  "color": "ff88dd88",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 10,
+  "iconV": 0,
+  "noBeds": true,
+  "blocks": {
+    "cobblemon:pasture_block": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "color": "ffffcc44",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 13,
+  "iconV": 0,
+  "noBeds": false,
+  "blocks": {
+    "cobblemon:gilded_chest": 1,
+    "minecraft:item_frame": 4
+  }
+}

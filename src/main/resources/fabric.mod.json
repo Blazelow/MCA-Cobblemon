@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "villagedex",
+  "version": "${version}",
+  "name": "Village Dex",
+  "description": "A Pokédex-style catalogue UI for MCA Reborn villages, with Cobblemon building support.",
+  "authors": ["YourName"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "client": ["net.villagedex.client.VillageDexClient"]
+  },
+  "mixins": ["villagedex.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.21.1",
+    "fabric-api": "*",
+    "mca": "*",
+    "cobblemon": "*"
+  },
+  "suggests": {
+    "cobbleverse": "*"
+  }
+}

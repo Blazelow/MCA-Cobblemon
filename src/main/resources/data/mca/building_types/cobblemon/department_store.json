@@ -1,0 +1,13 @@
+{
+  "color": "ff6644cc",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 12,
+  "iconV": 0,
+  "noBeds": true,
+  "blocks": {
+    "cobblemon:display_case": 2,
+    "minecraft:chest": 1
+  }
+}

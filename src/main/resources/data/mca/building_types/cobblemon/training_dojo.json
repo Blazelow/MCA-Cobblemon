@@ -1,0 +1,13 @@
+{
+  "color": "ffcc4444",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 11,
+  "iconV": 0,
+  "noBeds": false,
+  "blocks": {
+    "minecraft:stripped_oak_log": 4,
+    "minecraft:cobblestone": 2
+  }
+}

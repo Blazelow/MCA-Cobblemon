@@ -1,0 +1,23 @@
+{
+  "buildingType.cobblemon/pokecenter": "Pokémon Center",
+  "buildingType.cobblemon/pokecenter.description": "A healing station where trainers and their Pokémon can rest and recover after battle.",
+
+  "buildingType.cobblemon/pokemart": "Pokémart",
+  "buildingType.cobblemon/pokemart.description": "A shop stocking Poké Balls, potions and supplies for travelling trainers.",
+
+  "buildingType.cobblemon/daycare": "Pokémon Daycare",
+  "buildingType.cobblemon/daycare.description": "A pasture where Pokémon can roam freely while their trainer is away. Requires a Pasture Block.",
+
+  "buildingType.cobblemon/training_dojo": "Training Dojo",
+  "buildingType.cobblemon/training_dojo.description": "A sparring ground where village trainers hone their battle skills together.",
+
+  "buildingType.cobblemon/department_store": "Department Store",
+  "buildingType.cobblemon/department_store.description": "A large market stocking rare items and supplies. Exclusive to the Cobbleverse experience.",
+
+  "buildingType.cobblemon/trophy_room": "Trophy Room",
+  "buildingType.cobblemon/trophy_room.description": "A hall of fame displaying the greatest achievements of the village's trainers.",
+
+  "villagedex.tab.cobblemon": "Cobblemon",
+  "villagedex.tab.cobbleverse": "Cobbleverse",
+  "villagedex.tab.general": "General"
+}

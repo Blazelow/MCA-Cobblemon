@@ -1,0 +1,12 @@
+{
+  "color": "ff4488ff",
+  "visible": true,
+  "priority": 4,
+  "icon": true,
+  "iconU": 9,
+  "iconV": 0,
+  "noBeds": true,
+  "blocks": {
+    "cobblemon:display_case": 1
+  }
+}
