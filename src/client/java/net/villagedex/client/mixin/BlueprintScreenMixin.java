@@ -52,9 +52,10 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Layout ────────────────────────────────────────────────────────────────
     @Unique private static final int WIN_W        = 340;
-    @Unique private static final int WIN_H        = 240;
+    @Unique private static final int WIN_H        = 250;
     @Unique private static final int LIST_W       = 150;
-    @Unique private static final int TOP_BAR_H    = 22;
+    @Unique private static final int TOP_BAR_H    = 22;  // red title bar
+    @Unique private static final int TAB_BAR_H    = 18;  // tab buttons row
     @Unique private static final int BOTTOM_BAR_H = 18;
     @Unique private static final int ROW_H        = 18;
     @Unique private static final int DOT_SIZE     = 6;
@@ -129,7 +130,7 @@ public abstract class BlueprintScreenMixin extends Screen {
         int wy  = (this.height - WIN_H) / 2;
         int wx2 = wx + WIN_W;
         int wy2 = wy + WIN_H;
-        int cy  = wy + TOP_BAR_H;
+        int cy  = wy + TOP_BAR_H + TAB_BAR_H;
         int cy2 = wy2 - BOTTOM_BAR_H;
 
         // Shell
@@ -137,6 +138,9 @@ public abstract class BlueprintScreenMixin extends Screen {
         ctx.fill(wx, wy, wx2, wy + TOP_BAR_H, COL_SHELL);
         ctx.fill(wx, wy2 - BOTTOM_BAR_H, wx2, wy2, COL_SHELL);
         ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal("VILLAGE DEX"), wx + WIN_W / 2, wy + 7, COL_WHITE);
+
+        // Tab bar background
+        ctx.fill(wx, wy + TOP_BAR_H, wx2, wy + TOP_BAR_H + TAB_BAR_H, 0xFF222222);
 
         // Scanlines
         for (int sy = cy; sy < cy2; sy += 4) ctx.fill(wx, sy + 3, wx2, sy + 4, 0x12000000);
@@ -305,18 +309,19 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique
     private void vdx$addButtons() {
         int wx = (this.width - WIN_W) / 2, wy = (this.height - WIN_H) / 2;
-        // Back button sits in the top-left of the red bar
+        // Back button in top-left of red title bar
         addDrawableChild(ButtonWidget.builder(Text.literal("< Back"), b -> setPage(vdx$returnPage))
                 .dimensions(wx + 4, wy + 4, 44, 14).build());
-        // Tab buttons sit right after the Back button in the same bar
-        int tx = wx + 52;
+        // Tab buttons in their own row below the red bar
+        int tx = wx + 4;
+        int ty = wy + TOP_BAR_H + 1;
         for (int i = 0; i < vdx$tabs.size(); i++) {
             final int idx = i;
             String label = vdx$tabs.get(i);
             int tw = this.textRenderer.getWidth(label) + 10;
             addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
                 vdx$activeTab = idx; vdx$selectedRow = 0;
-            }).dimensions(tx, wy + 4, tw, 14).build());
+            }).dimensions(tx, ty, tw, TAB_BAR_H - 2).build());
             tx += tw + 3;
         }
     }
