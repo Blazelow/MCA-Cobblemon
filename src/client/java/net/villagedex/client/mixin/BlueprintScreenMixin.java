@@ -141,6 +141,15 @@ public abstract class BlueprintScreenMixin extends Screen {
 
         // Tab bar background
         ctx.fill(wx, wy + TOP_BAR_H, wx2, wy + TOP_BAR_H + TAB_BAR_H, 0xFF222222);
+        // Active tab highlight — draw a red underline under the active tab button
+        int txx = wx + 4;
+        for (int ti = 0; ti < vdx$tabs.size(); ti++) {
+            int tw = this.textRenderer.getWidth(vdx$tabs.get(ti)) + 10;
+            if (ti == vdx$activeTab) {
+                ctx.fill(txx, wy + TOP_BAR_H + TAB_BAR_H - 2, txx + tw, wy + TOP_BAR_H + TAB_BAR_H, COL_SEL_BAR);
+            }
+            txx += tw + 3;
+        }
 
         // Scanlines
         for (int sy = cy; sy < cy2; sy += 4) ctx.fill(wx, sy + 3, wx2, sy + 4, 0x12000000);
@@ -367,15 +376,39 @@ public abstract class BlueprintScreenMixin extends Screen {
         return ItemStack.EMPTY;
     }
 
+    // Preferred items for specific tags that don't have vanilla entries
+    @Unique private static final Map<String, String> TAG_PREFERRED_ITEM = Map.of(
+        "mca:tombstones", "mca:cross_headstone",
+        "mca:chests",     "minecraft:chest",
+        "c:chests",       "minecraft:chest"
+    );
+
     @Unique private ItemStack vdx$reqIcon(Identifier id) {
         // Direct item/block lookup
         if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
         if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
-        // Tag fallback — find first item in the tag
+
+        // Check preferred item overrides for known tags
+        String tagKey = id.getNamespace() + ":" + id.getPath();
+        if (TAG_PREFERRED_ITEM.containsKey(tagKey)) {
+            Identifier preferred = Identifier.tryParse(TAG_PREFERRED_ITEM.get(tagKey));
+            if (preferred != null && Registries.ITEM.containsId(preferred))
+                return new ItemStack(Registries.ITEM.get(preferred));
+            if (preferred != null && Registries.BLOCK.containsId(preferred))
+                return new ItemStack(Registries.BLOCK.get(preferred).asItem());
+        }
+
+        // Tag fallback — prefer vanilla (minecraft namespace) items first
         net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
         var tagContents = Registries.ITEM.getEntryList(itemTag);
         if (tagContents.isPresent() && tagContents.get().size() > 0) {
+            for (var entry : tagContents.get()) {
+                Identifier entryId = Registries.ITEM.getId(entry.value());
+                if (entryId != null && "minecraft".equals(entryId.getNamespace())) {
+                    return new ItemStack(entry.value());
+                }
+            }
             return new ItemStack(tagContents.get().get(0).value());
         }
         // Also try block tags
@@ -383,6 +416,12 @@ public abstract class BlueprintScreenMixin extends Screen {
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.BLOCK, id);
         var blockTagContents = Registries.BLOCK.getEntryList(blockTag);
         if (blockTagContents.isPresent() && blockTagContents.get().size() > 0) {
+            for (var entry : blockTagContents.get()) {
+                Identifier entryId = Registries.BLOCK.getId(entry.value());
+                if (entryId != null && "minecraft".equals(entryId.getNamespace())) {
+                    return new ItemStack(entry.value().asItem());
+                }
+            }
             return new ItemStack(blockTagContents.get().get(0).value().asItem());
         }
         return ItemStack.EMPTY;
@@ -391,13 +430,17 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private String vdx$reqName(Identifier id) {
         if (Registries.ITEM.containsId(id))  return Text.translatable(Registries.ITEM.get(id).getTranslationKey()).getString();
         if (Registries.BLOCK.containsId(id)) return Text.translatable(Registries.BLOCK.get(id).getTranslationKey()).getString();
-        // Tag: use first matching item name, fallback to formatted path
+        // Tag: prefer vanilla item name, fallback to formatted path
         net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
         var tagContents = Registries.ITEM.getEntryList(itemTag);
         if (tagContents.isPresent() && tagContents.get().size() > 0) {
-            String firstName = Text.translatable(tagContents.get().get(0).value().getTranslationKey()).getString();
-            return firstName + "s"; // pluralise since it's a tag (e.g. "Bed" -> "Beds")
+            net.minecraft.item.Item best = tagContents.get().get(0).value();
+            for (var entry : tagContents.get()) {
+                Identifier eid = Registries.ITEM.getId(entry.value());
+                if (eid != null && "minecraft".equals(eid.getNamespace())) { best = entry.value(); break; }
+            }
+            return Text.translatable(best.getTranslationKey()).getString() + "s";
         }
         // Format tag path as readable name
         return Arrays.stream(id.getPath().replace('_',' ').split(" "))
