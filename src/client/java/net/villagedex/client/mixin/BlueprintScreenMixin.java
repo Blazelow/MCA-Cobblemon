@@ -361,23 +361,45 @@ public abstract class BlueprintScreenMixin extends Screen {
         Optional<Identifier> ov = VillageDexDataLoader.getOverride(b.name()).nodeItem();
         if (ov.isPresent() && Registries.ITEM.containsId(ov.get())) return new ItemStack(Registries.ITEM.get(ov.get()));
         for (Identifier id : b.requirements().keySet()) {
-            // Check item registry first (handles modded blocks registered as items only)
-            if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
-            if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
+            ItemStack stack = vdx$reqIcon(id);
+            if (!stack.isEmpty()) return stack;
         }
         return ItemStack.EMPTY;
     }
 
     @Unique private ItemStack vdx$reqIcon(Identifier id) {
-        // Try block first, then item (covers cases like cobblemon:pasture_block which is item-only)
+        // Direct item/block lookup
         if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
         if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
+        // Tag fallback — find first item in the tag
+        net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
+                net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
+        var tagContents = Registries.ITEM.getEntryList(itemTag);
+        if (tagContents.isPresent() && !tagContents.get().isEmpty()) {
+            return new ItemStack(tagContents.get().get(0).value());
+        }
+        // Also try block tags
+        net.minecraft.registry.tag.TagKey<net.minecraft.block.Block> blockTag =
+                net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.BLOCK, id);
+        var blockTagContents = Registries.BLOCK.getEntryList(blockTag);
+        if (blockTagContents.isPresent() && !blockTagContents.get().isEmpty()) {
+            return new ItemStack(blockTagContents.get().get(0).value().asItem());
+        }
         return ItemStack.EMPTY;
     }
 
     @Unique private String vdx$reqName(Identifier id) {
-        if (Registries.BLOCK.containsId(id)) return Text.translatable(Registries.BLOCK.get(id).getTranslationKey()).getString();
         if (Registries.ITEM.containsId(id))  return Text.translatable(Registries.ITEM.get(id).getTranslationKey()).getString();
+        if (Registries.BLOCK.containsId(id)) return Text.translatable(Registries.BLOCK.get(id).getTranslationKey()).getString();
+        // Tag: use first matching item name, fallback to formatted path
+        net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
+                net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
+        var tagContents = Registries.ITEM.getEntryList(itemTag);
+        if (tagContents.isPresent() && !tagContents.get().isEmpty()) {
+            String firstName = Text.translatable(tagContents.get().get(0).value().getTranslationKey()).getString();
+            return firstName + "s"; // pluralise since it's a tag (e.g. "Bed" -> "Beds")
+        }
+        // Format tag path as readable name
         return Arrays.stream(id.getPath().replace('_',' ').split(" "))
                 .map(w -> w.isEmpty() ? w : w.substring(0,1).toUpperCase(Locale.ROOT) + w.substring(1))
                 .collect(Collectors.joining(" "));
