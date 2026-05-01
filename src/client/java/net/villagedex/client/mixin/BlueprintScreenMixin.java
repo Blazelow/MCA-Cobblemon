@@ -74,7 +74,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private final List<ButtonWidget> vdx$tabButtons = new ArrayList<>();
 
     @Unique
-    private record BuildingEntry(String name, Map<Identifier, Integer> requirements, int iconU, int iconV) {}
+    private record BuildingEntry(String name, Map<Identifier, Integer> requirements) {}
 
     protected BlueprintScreenMixin() { super(Text.empty()); }
 
@@ -207,18 +207,8 @@ public abstract class BlueprintScreenMixin extends Screen {
         // Icon box
         ctx.fill(px, py, px + 32, py + 32, 0xFF1A1A1A);
         ctx.drawBorder(px, py, 32, 32, COL_DIVIDER);
-        // Use override node_item first, then MCA sprite sheet, then item fallback
-        Optional<Identifier> ovId = VillageDexDataLoader.getOverride(b.name()).nodeItem();
-        if (ovId.isPresent() && Registries.ITEM.containsId(ovId.get())) {
-            ctx.drawItem(new ItemStack(Registries.ITEM.get(ovId.get())), px + 8, py + 8);
-        } else if (b.iconU() >= 0 && b.iconV() >= 0) {
-            // Render from MCA sprite sheet: each icon is 16x16 in a 256x256 sheet
-            net.minecraft.util.Identifier sheet = net.minecraft.util.Identifier.of("villagedex", "textures/buildings/mca_buildings.png");
-            ctx.drawTexture(sheet, px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16, 256, 256);
-        } else {
-            ItemStack icon = vdx$icon(b);
-            if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
-        }
+        ItemStack icon = vdx$icon(b);
+        if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
 
         // Name + blink cursor
         boolean blink = (vdx$tick / 10) % 2 == 0;
@@ -322,17 +312,8 @@ public abstract class BlueprintScreenMixin extends Screen {
                 for (Map.Entry<?,?> e : rawGroups.entrySet()) {
                     if (e.getKey() instanceof Identifier id) reqs.put(id, (Integer) e.getValue());
                 }
-                // Read iconU and iconV from building type
-                int iconU = -1, iconV = -1;
-                try {
-                    Object iconUObj = bt.getClass().getMethod("iconU").invoke(bt);
-                    Object iconVObj = bt.getClass().getMethod("iconV").invoke(bt);
-                    if (iconUObj instanceof Integer u) iconU = u;
-                    if (iconVObj instanceof Integer v) iconV = v;
-                } catch (Exception ignored) {}
-
                 String tab = VillageDexDataLoader.resolveTab(btName);
-                vdx$byTab.computeIfAbsent(tab, k -> new ArrayList<>()).add(new BuildingEntry(btName, reqs, iconU, iconV));
+                vdx$byTab.computeIfAbsent(tab, k -> new ArrayList<>()).add(new BuildingEntry(btName, reqs));
             }
         } catch (Exception e) {
             VillageDexClient.LOGGER.error("VillageDex: could not load building types: {}", e.getMessage());
