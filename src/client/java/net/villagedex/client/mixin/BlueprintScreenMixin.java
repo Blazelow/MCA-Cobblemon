@@ -383,7 +383,16 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     @Unique private ItemStack vdx$icon(BuildingEntry b) {
         Optional<Identifier> ov = VillageDexDataLoader.getOverride(b.name()).nodeItem();
-        if (ov.isPresent() && Registries.ITEM.containsId(ov.get())) return new ItemStack(Registries.ITEM.get(ov.get()));
+        if (ov.isPresent()) {
+            if (Registries.ITEM.containsId(ov.get()))
+                return new ItemStack(Registries.ITEM.get(ov.get()));
+            if (Registries.BLOCK.containsId(ov.get())) {
+                net.minecraft.item.Item asItem = Registries.BLOCK.get(ov.get()).asItem();
+                if (asItem != net.minecraft.item.Items.AIR) return new ItemStack(asItem);
+                // Block has no item form — try item registry with same ID anyway
+                return new ItemStack(Registries.BLOCK.get(ov.get()));
+            }
+        }
         for (Identifier id : b.requirements().keySet()) {
             ItemStack stack = vdx$reqIcon(id);
             if (!stack.isEmpty()) return stack;
@@ -401,7 +410,11 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private ItemStack vdx$reqIcon(Identifier id) {
         // Direct item/block lookup
         if (Registries.ITEM.containsId(id))  return new ItemStack(Registries.ITEM.get(id));
-        if (Registries.BLOCK.containsId(id)) return new ItemStack(Registries.BLOCK.get(id));
+        if (Registries.BLOCK.containsId(id)) {
+            net.minecraft.item.Item asItem = Registries.BLOCK.get(id).asItem();
+            if (asItem != net.minecraft.item.Items.AIR) return new ItemStack(asItem);
+            return new ItemStack(Registries.BLOCK.get(id));
+        }
 
         // Check preferred item overrides for known tags
         String tagKey = id.getNamespace() + ":" + id.getPath();
