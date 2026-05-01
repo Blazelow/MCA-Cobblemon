@@ -343,7 +343,8 @@ public abstract class BlueprintScreenMixin extends Screen {
             final int idx = i;
             String label = vdx$tabs.get(i);
             int tw = this.textRenderer.getWidth(label) + 10;
-            var tab = addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
+            // Use empty text — we draw our own label in render to avoid button gradient
+            var tab = addDrawableChild(ButtonWidget.builder(Text.empty(), b -> {
                 vdx$activeTab = idx; vdx$selectedRow = 0;
             }).dimensions(tx, ty, tw, TAB_BAR_H - 2).build());
             vdx$ownButtons.add(tab);
