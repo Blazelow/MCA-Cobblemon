@@ -70,6 +70,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private long vdx$tick           = 0;
     @Unique private Set<String> vdx$builtTypes = new HashSet<>();
     @Unique private Map<String, List<BuildingEntry>> vdx$byTab = new LinkedHashMap<>();
+    @Unique private final List<net.minecraft.client.gui.widget.ClickableWidget> vdx$ownButtons = new ArrayList<>();
 
     @Unique
     private record BuildingEntry(String name, Map<Identifier, Integer> requirements) {}
@@ -80,11 +81,11 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     @Inject(method = "setPage", remap = false, at = @At("HEAD"), cancellable = true)
     private void vdx$interceptCatalog(String pageName, CallbackInfo ci) {
-        // Restore all buttons to visible whenever we leave our page
+        // Restore MCA buttons and hide ours when leaving our page
         if (VDX_PAGE.equals(this.page) && !VDX_PAGE.equals(pageName)) {
             for (net.minecraft.client.gui.Element child : this.children()) {
                 if (child instanceof net.minecraft.client.gui.widget.ClickableWidget w) {
-                    w.visible = true;
+                    w.visible = !vdx$ownButtons.contains(w);
                 }
             }
         }
@@ -106,16 +107,15 @@ public abstract class BlueprintScreenMixin extends Screen {
         boolean isOurPage = VDX_PAGE.equals(this.page);
         for (net.minecraft.client.gui.Element child : this.children()) {
             if (child instanceof net.minecraft.client.gui.widget.ClickableWidget widget) {
-                // Keep our own buttons visible, hide MCA's
-                if (widget.getMessage() != null) {
-                    String msg = widget.getMessage().getString();
-                    boolean isOurs = msg.equals("< Back") || vdx$tabs.contains(msg);
-                    widget.visible = !isOurPage || isOurs;
+                if (vdx$ownButtons.contains(widget)) {
+                    widget.visible = isOurPage;
+                } else {
+                    widget.visible = !isOurPage;
                 }
             }
         }
         if (!isOurPage) return;
-        vdx$rebuild();
+        vdx$rebuild();   // must come first so vdx$tabs is populated
         vdx$addButtons();
     }
 
@@ -245,7 +245,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfoReturnable<Boolean> ci) {
         if (!VDX_PAGE.equals(this.page) || btn != 0) return;
         int wx = (this.width - WIN_W) / 2;
-        int cy = (this.height - WIN_H) / 2 + TOP_BAR_H;
+        int cy = (this.height - WIN_H) / 2 + TOP_BAR_H + TAB_BAR_H;
         if (mx >= wx && mx < wx + LIST_W && my >= cy) {
             int row = (int)(my - cy - 2) / ROW_H;
             List<BuildingEntry> buildings = vdx$currentBuildings();
@@ -308,10 +308,12 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     @Unique
     private void vdx$addButtons() {
+        vdx$ownButtons.clear();
         int wx = (this.width - WIN_W) / 2, wy = (this.height - WIN_H) / 2;
         // Back button in top-left of red title bar
-        addDrawableChild(ButtonWidget.builder(Text.literal("< Back"), b -> setPage(vdx$returnPage))
+        var back = addDrawableChild(ButtonWidget.builder(Text.literal("< Back"), b -> setPage(vdx$returnPage))
                 .dimensions(wx + 4, wy + 4, 44, 14).build());
+        vdx$ownButtons.add(back);
         // Tab buttons in their own row below the red bar
         int tx = wx + 4;
         int ty = wy + TOP_BAR_H + 1;
@@ -319,9 +321,10 @@ public abstract class BlueprintScreenMixin extends Screen {
             final int idx = i;
             String label = vdx$tabs.get(i);
             int tw = this.textRenderer.getWidth(label) + 10;
-            addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
+            var tab = addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
                 vdx$activeTab = idx; vdx$selectedRow = 0;
             }).dimensions(tx, ty, tw, TAB_BAR_H - 2).build());
+            vdx$ownButtons.add(tab);
             tx += tw + 3;
         }
     }

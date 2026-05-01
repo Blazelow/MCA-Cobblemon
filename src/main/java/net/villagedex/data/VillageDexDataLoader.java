@@ -108,7 +108,7 @@ public class VillageDexDataLoader extends JsonDataLoader implements Identifiable
             String sub = buildingTypeName.substring("cobblemon/".length());
             return capitalize(sub.split("/")[0]);
         }
-        return "General";
+        return "MCA";
     }
 
     private static String capitalize(String s) {
