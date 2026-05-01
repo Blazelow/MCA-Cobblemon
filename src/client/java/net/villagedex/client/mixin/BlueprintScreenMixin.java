@@ -71,6 +71,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private Set<String> vdx$builtTypes = new HashSet<>();
     @Unique private Map<String, List<BuildingEntry>> vdx$byTab = new LinkedHashMap<>();
     @Unique private final List<net.minecraft.client.gui.widget.ClickableWidget> vdx$ownButtons = new ArrayList<>();
+    @Unique private final List<ButtonWidget> vdx$tabButtons = new ArrayList<>();
 
     @Unique
     private record BuildingEntry(String name, Map<Identifier, Integer> requirements) {}
@@ -141,14 +142,25 @@ public abstract class BlueprintScreenMixin extends Screen {
 
         // Tab bar background
         ctx.fill(wx, wy + TOP_BAR_H, wx2, wy + TOP_BAR_H + TAB_BAR_H, 0xFF222222);
-        // Active tab highlight — draw a red underline under the active tab button
-        int txx = wx + 4;
-        for (int ti = 0; ti < vdx$tabs.size(); ti++) {
-            int tw = this.textRenderer.getWidth(vdx$tabs.get(ti)) + 10;
-            if (ti == vdx$activeTab) {
-                ctx.fill(txx, wy + TOP_BAR_H + TAB_BAR_H - 2, txx + tw, wy + TOP_BAR_H + TAB_BAR_H, COL_SEL_BAR);
+        // Active tab highlight — red underline + bright text on active, dim inactive
+        for (int ti = 0; ti < vdx$tabButtons.size(); ti++) {
+            ButtonWidget btn = vdx$tabButtons.get(ti);
+            boolean isActive = ti == vdx$activeTab;
+            int bx = btn.getX(), by2 = btn.getY(), bw = btn.getWidth();
+            // Draw highlight background on active tab
+            if (isActive) {
+                ctx.fill(bx, by2, bx + bw, by2 + TAB_BAR_H - 2, 0xFF3A0000);
+                ctx.drawBorder(bx, by2, bw, TAB_BAR_H - 2, COL_SEL_BAR);
+                // Red underline
+                ctx.fill(bx, by2 + TAB_BAR_H - 4, bx + bw, by2 + TAB_BAR_H - 2, COL_SEL_BAR);
+                // Override text color to white
+                ctx.drawCenteredTextWithShadow(this.textRenderer,
+                        Text.literal(vdx$tabs.get(ti)), bx + bw / 2, by2 + 3, COL_WHITE);
+            } else {
+                // Dim inactive tabs slightly
+                ctx.drawCenteredTextWithShadow(this.textRenderer,
+                        Text.literal(vdx$tabs.get(ti)), bx + bw / 2, by2 + 3, COL_DIM);
             }
-            txx += tw + 3;
         }
 
         // Scanlines
@@ -324,6 +336,7 @@ public abstract class BlueprintScreenMixin extends Screen {
                 .dimensions(wx + 4, wy + 4, 44, 14).build());
         vdx$ownButtons.add(back);
         // Tab buttons in their own row below the red bar
+        vdx$tabButtons.clear();
         int tx = wx + 4;
         int ty = wy + TOP_BAR_H + 1;
         for (int i = 0; i < vdx$tabs.size(); i++) {
@@ -334,6 +347,7 @@ public abstract class BlueprintScreenMixin extends Screen {
                 vdx$activeTab = idx; vdx$selectedRow = 0;
             }).dimensions(tx, ty, tw, TAB_BAR_H - 2).build());
             vdx$ownButtons.add(tab);
+            vdx$tabButtons.add(tab);
             tx += tw + 3;
         }
     }
