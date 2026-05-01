@@ -375,14 +375,14 @@ public abstract class BlueprintScreenMixin extends Screen {
         net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
         var tagContents = Registries.ITEM.getEntryList(itemTag);
-        if (tagContents.isPresent() && !tagContents.get().isEmpty()) {
+        if (tagContents.isPresent() && tagContents.get().size() > 0) {
             return new ItemStack(tagContents.get().get(0).value());
         }
         // Also try block tags
         net.minecraft.registry.tag.TagKey<net.minecraft.block.Block> blockTag =
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.BLOCK, id);
         var blockTagContents = Registries.BLOCK.getEntryList(blockTag);
-        if (blockTagContents.isPresent() && !blockTagContents.get().isEmpty()) {
+        if (blockTagContents.isPresent() && blockTagContents.get().size() > 0) {
             return new ItemStack(blockTagContents.get().get(0).value().asItem());
         }
         return ItemStack.EMPTY;
@@ -395,7 +395,7 @@ public abstract class BlueprintScreenMixin extends Screen {
         net.minecraft.registry.tag.TagKey<net.minecraft.item.Item> itemTag =
                 net.minecraft.registry.tag.TagKey.of(net.minecraft.registry.RegistryKeys.ITEM, id);
         var tagContents = Registries.ITEM.getEntryList(itemTag);
-        if (tagContents.isPresent() && !tagContents.get().isEmpty()) {
+        if (tagContents.isPresent() && tagContents.get().size() > 0) {
             String firstName = Text.translatable(tagContents.get().get(0).value().getTranslationKey()).getString();
             return firstName + "s"; // pluralise since it's a tag (e.g. "Bed" -> "Beds")
         }
