@@ -74,7 +74,7 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private final List<ButtonWidget> vdx$tabButtons = new ArrayList<>();
 
     @Unique
-    private record BuildingEntry(String name, Map<Identifier, Integer> requirements) {}
+    private record BuildingEntry(String name, Map<Identifier, Integer> requirements, int iconU, int iconV) {}
 
     protected BlueprintScreenMixin() { super(Text.empty()); }
 
@@ -207,8 +207,18 @@ public abstract class BlueprintScreenMixin extends Screen {
         // Icon box
         ctx.fill(px, py, px + 32, py + 32, 0xFF1A1A1A);
         ctx.drawBorder(px, py, 32, 32, COL_DIVIDER);
-        ItemStack icon = vdx$icon(b);
-        if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
+        Optional<Identifier> ovId = VillageDexDataLoader.getOverride(b.name()).nodeItem();
+        boolean drewIcon = false;
+        // Use our sprite sheet for buildings with iconU >= 8 (custom Cobblemon sprites)
+        if (!ovId.isPresent() && b.iconU() >= 8) {
+            net.minecraft.util.Identifier sheet = net.minecraft.util.Identifier.of("villagedex", "textures/buildings/mca_buildings.png");
+            ctx.drawTexture(sheet, px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16, 256, 256);
+            drewIcon = true;
+        }
+        if (!drewIcon) {
+            ItemStack icon = vdx$icon(b);
+            if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
+        }
 
         // Name + blink cursor
         boolean blink = (vdx$tick / 10) % 2 == 0;
@@ -257,6 +267,45 @@ public abstract class BlueprintScreenMixin extends Screen {
                 ctx.drawTextWithShadow(this.textRenderer, Text.literal(qty + "x " + rname), chipX + 4, chipY + 3, COL_BLUE);
             }
             chipX += chipW + 4;
+        }
+    }
+
+    // ── Override map icon rendering for Cobblemon buildings ─────────────────
+    // Signature: drawBuildingIcon(DrawContext ctx, Identifier buildingTypeId, int x, int y, int w, int h)
+    @Inject(method = "drawBuildingIcon", remap = false, at = @At("HEAD"), cancellable = true)
+    private void vdx$drawBuildingIcon(DrawContext ctx, net.minecraft.util.Identifier buildingTypeId,
+                                      int x, int y, int w, int h, CallbackInfo ci) {
+        try {
+            String btName = buildingTypeId.getPath();
+            if (!buildingTypeId.getNamespace().equals("mca") && !btName.startsWith("cobblemon/")) return;
+
+            // Map building type to Cobblemon item
+            Identifier itemId = null;
+            if (btName.contains("pokecenter") || btName.contains("pokemon_center"))
+                itemId = Identifier.of("cobblemon", "healing_machine");
+            else if (btName.contains("pokemart") || btName.contains("pokemon_mart"))
+                itemId = Identifier.of("cobblemon", "display_case");
+            else if (btName.contains("daycare") || btName.contains("pasture"))
+                itemId = Identifier.of("cobblemon", "pasture_block");
+
+            if (itemId == null) return;
+
+            net.minecraft.item.Item item = null;
+            if (Registries.ITEM.containsId(itemId))
+                item = Registries.ITEM.get(itemId);
+            else if (Registries.BLOCK.containsId(itemId))
+                item = Registries.BLOCK.get(itemId).asItem();
+
+            if (item == null || item == net.minecraft.item.Items.AIR) return;
+
+            // Render the item centered in the icon area
+            int iconSize = Math.min(w, h);
+            int ix = x + (w - iconSize) / 2;
+            int iy = y + (h - iconSize) / 2;
+            ctx.drawItem(new ItemStack(item), ix, iy);
+            ci.cancel();
+        } catch (Exception e) {
+            VillageDexClient.LOGGER.warn("VillageDex drawBuildingIcon: {}", e.getMessage());
         }
     }
 
@@ -312,8 +361,15 @@ public abstract class BlueprintScreenMixin extends Screen {
                 for (Map.Entry<?,?> e : rawGroups.entrySet()) {
                     if (e.getKey() instanceof Identifier id) reqs.put(id, (Integer) e.getValue());
                 }
+                int iconU = -1, iconV = -1;
+                try {
+                    Object u = bt.getClass().getMethod("iconU").invoke(bt);
+                    Object v = bt.getClass().getMethod("iconV").invoke(bt);
+                    if (u instanceof Integer ui) iconU = ui;
+                    if (v instanceof Integer vi) iconV = vi;
+                } catch (Exception ignored) {}
                 String tab = VillageDexDataLoader.resolveTab(btName);
-                vdx$byTab.computeIfAbsent(tab, k -> new ArrayList<>()).add(new BuildingEntry(btName, reqs));
+                vdx$byTab.computeIfAbsent(tab, k -> new ArrayList<>()).add(new BuildingEntry(btName, reqs, iconU, iconV));
             }
         } catch (Exception e) {
             VillageDexClient.LOGGER.error("VillageDex: could not load building types: {}", e.getMessage());
