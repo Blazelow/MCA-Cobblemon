@@ -122,7 +122,7 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Replace renderCatalog with our Pokédex UI ─────────────────────────────
 
-    @Inject(method = "render", at = @At("TAIL"))
+    @Inject(method = "method_25394", remap = false, at = @At("TAIL"))
     private void vdx$render(DrawContext ctx, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!VDX_PAGE.equals(this.page)) return;
         vdx$tick++;
@@ -272,7 +272,7 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Mouse click on list rows ──────────────────────────────────────────────
 
-    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "method_25402", remap = false, at = @At("HEAD"), cancellable = true)
     private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfoReturnable<Boolean> ci) {
         if (!VDX_PAGE.equals(this.page) || btn != 0) return;
         int wx = (this.width - WIN_W) / 2;
