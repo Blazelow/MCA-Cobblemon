@@ -122,7 +122,7 @@ public abstract class BlueprintScreenMixin extends Screen {
 
     // ── Replace renderCatalog with our Pokédex UI ─────────────────────────────
 
-    @Inject(method = "method_25394", remap = false, at = @At("TAIL"))
+    @Inject(method = "render", at = @At("TAIL"))
     private void vdx$render(DrawContext ctx, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!VDX_PAGE.equals(this.page)) return;
         vdx$tick++;
@@ -270,48 +270,9 @@ public abstract class BlueprintScreenMixin extends Screen {
         }
     }
 
-    // ── Override map icon rendering for Cobblemon buildings ─────────────────
-    // Signature: drawBuildingIcon(DrawContext ctx, Identifier buildingTypeId, int x, int y, int w, int h)
-    @Inject(method = "drawBuildingIcon", remap = false, at = @At("HEAD"), cancellable = true)
-    private void vdx$drawBuildingIcon(DrawContext ctx, net.minecraft.util.Identifier buildingTypeId,
-                                      int x, int y, int w, int h, CallbackInfo ci) {
-        try {
-            String btName = buildingTypeId.getPath();
-            if (!buildingTypeId.getNamespace().equals("mca") && !btName.startsWith("cobblemon/")) return;
-
-            // Map building type to Cobblemon item
-            Identifier itemId = null;
-            if (btName.contains("pokecenter") || btName.contains("pokemon_center"))
-                itemId = Identifier.of("cobblemon", "healing_machine");
-            else if (btName.contains("pokemart") || btName.contains("pokemon_mart"))
-                itemId = Identifier.of("cobblemon", "display_case");
-            else if (btName.contains("daycare") || btName.contains("pasture"))
-                itemId = Identifier.of("cobblemon", "pasture_block");
-
-            if (itemId == null) return;
-
-            net.minecraft.item.Item item = null;
-            if (Registries.ITEM.containsId(itemId))
-                item = Registries.ITEM.get(itemId);
-            else if (Registries.BLOCK.containsId(itemId))
-                item = Registries.BLOCK.get(itemId).asItem();
-
-            if (item == null || item == net.minecraft.item.Items.AIR) return;
-
-            // Render the item centered in the icon area
-            int iconSize = Math.min(w, h);
-            int ix = x + (w - iconSize) / 2;
-            int iy = y + (h - iconSize) / 2;
-            ctx.drawItem(new ItemStack(item), ix, iy);
-            ci.cancel();
-        } catch (Exception e) {
-            VillageDexClient.LOGGER.warn("VillageDex drawBuildingIcon: {}", e.getMessage());
-        }
-    }
-
     // ── Mouse click on list rows ──────────────────────────────────────────────
 
-    @Inject(method = "method_25402", remap = false, at = @At("HEAD"), cancellable = true)
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void vdx$mouseClicked(double mx, double my, int btn, CallbackInfoReturnable<Boolean> ci) {
         if (!VDX_PAGE.equals(this.page) || btn != 0) return;
         int wx = (this.width - WIN_W) / 2;
