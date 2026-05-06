@@ -209,12 +209,24 @@ public abstract class BlueprintScreenMixin extends Screen {
         ctx.drawBorder(px, py, 32, 32, COL_DIVIDER);
         Optional<Identifier> ovId = VillageDexDataLoader.getOverride(b.name()).nodeItem();
         boolean drewIcon = false;
-        // Use our sprite sheet for buildings with iconU >= 8 (custom Cobblemon sprites)
-        if (!ovId.isPresent() && b.iconU() >= 8) {
+        // node_item override takes priority — always use drawItem
+        if (ovId.isPresent()) {
+            ItemStack icon = vdx$icon(b);
+            if (!icon.isEmpty()) { ctx.drawItem(icon, px + 8, py + 8); drewIcon = true; }
+        }
+        // Cobblemon buildings: use drawItem (renders 3D model like inventory)
+        if (!drewIcon && b.name().startsWith("cobblemon/")) {
+            ItemStack icon = vdx$icon(b);
+            if (!icon.isEmpty()) { ctx.drawItem(icon, px + 8, py + 8); drewIcon = true; }
+        }
+        // MCA buildings: use sprite sheet via iconU/V
+        if (!drewIcon && b.iconU() >= 0) {
             net.minecraft.util.Identifier sheet = net.minecraft.util.Identifier.of("villagedex", "textures/buildings/mca_buildings.png");
-            ctx.drawTexture(sheet, px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16, 256, 256);
+            ctx.drawTexture(net.minecraft.client.render.RenderLayer::getGuiTextured, sheet,
+                    px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16, 256, 256);
             drewIcon = true;
         }
+        // Final fallback
         if (!drewIcon) {
             ItemStack icon = vdx$icon(b);
             if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
