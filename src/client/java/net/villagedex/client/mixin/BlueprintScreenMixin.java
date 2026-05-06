@@ -222,8 +222,7 @@ public abstract class BlueprintScreenMixin extends Screen {
         // MCA buildings: use sprite sheet via iconU/V
         if (!drewIcon && b.iconU() >= 0) {
             net.minecraft.util.Identifier sheet = net.minecraft.util.Identifier.of("villagedex", "textures/buildings/mca_buildings.png");
-            ctx.drawTexture(net.minecraft.client.render.RenderLayer::getGuiTextured, sheet,
-                    px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16, 256, 256);
+            ctx.drawTexture(sheet, px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16);
             drewIcon = true;
         }
         // Final fallback
