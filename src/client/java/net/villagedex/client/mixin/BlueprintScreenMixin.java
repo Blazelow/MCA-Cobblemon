@@ -204,32 +204,11 @@ public abstract class BlueprintScreenMixin extends Screen {
         boolean built = vdx$builtTypes.contains(b.name());
         int px = x + 6, py = y + 6;
 
-        // Icon box
+        // Icon box — always use drawItem for reliability
         ctx.fill(px, py, px + 32, py + 32, 0xFF1A1A1A);
         ctx.drawBorder(px, py, 32, 32, COL_DIVIDER);
-        Optional<Identifier> ovId = VillageDexDataLoader.getOverride(b.name()).nodeItem();
-        boolean drewIcon = false;
-        // node_item override takes priority — always use drawItem
-        if (ovId.isPresent()) {
-            ItemStack icon = vdx$icon(b);
-            if (!icon.isEmpty()) { ctx.drawItem(icon, px + 8, py + 8); drewIcon = true; }
-        }
-        // Cobblemon buildings: use drawItem (renders 3D model like inventory)
-        if (!drewIcon && b.name().startsWith("cobblemon/")) {
-            ItemStack icon = vdx$icon(b);
-            if (!icon.isEmpty()) { ctx.drawItem(icon, px + 8, py + 8); drewIcon = true; }
-        }
-        // MCA buildings: use sprite sheet via iconU/V
-        if (!drewIcon && b.iconU() >= 0) {
-            net.minecraft.util.Identifier sheet = net.minecraft.util.Identifier.of("villagedex", "textures/buildings/mca_buildings.png");
-            ctx.drawTexture(sheet, px + 8, py + 8, b.iconU() * 16, b.iconV() * 16, 16, 16);
-            drewIcon = true;
-        }
-        // Final fallback
-        if (!drewIcon) {
-            ItemStack icon = vdx$icon(b);
-            if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
-        }
+        ItemStack icon = vdx$icon(b);
+        if (!icon.isEmpty()) ctx.drawItem(icon, px + 8, py + 8);
 
         // Name + blink cursor
         boolean blink = (vdx$tick / 10) % 2 == 0;
@@ -279,6 +258,32 @@ public abstract class BlueprintScreenMixin extends Screen {
             }
             chipX += chipW + 4;
         }
+    }
+
+    // ── Map icon rendering for Cobblemon buildings ───────────────────────────
+    // Signature matches MCA's: drawBuildingIcon(DrawContext, Identifier, int x, int y, int u, int v)
+    @Inject(method = "drawBuildingIcon", remap = false, at = @At("HEAD"), cancellable = true)
+    private void vdx$drawBuildingIcon(DrawContext ctx, Identifier texture,
+                                      int x, int y, int u, int v, CallbackInfo ci) {
+        // Map iconU to Cobblemon item
+        Identifier itemId = switch (u) {
+            case 8  -> Identifier.of("cobblemon", "healing_machine");
+            case 9  -> Identifier.of("cobblemon", "display_case");
+            case 10 -> Identifier.of("cobblemon", "pasture_block");
+            default -> null;
+        };
+        if (itemId == null) return;
+
+        ItemStack stack = vdx$resolveItem(itemId);
+        if (stack.isEmpty()) return;
+
+        // Render item on the map with proper depth layering (following Townstead's approach)
+        ctx.getMatrices().push();
+        ctx.getMatrices().translate(x - 6.0, y - 6.0, 0.0);
+        ctx.getMatrices().scale(0.75f, 0.75f, 1.0f);
+        ctx.drawItem(stack, 0, 0);
+        ctx.getMatrices().pop();
+        ci.cancel();
     }
 
     // ── Mouse click on list rows ──────────────────────────────────────────────
@@ -412,19 +417,34 @@ public abstract class BlueprintScreenMixin extends Screen {
     @Unique private ItemStack vdx$icon(BuildingEntry b) {
         Optional<Identifier> ov = VillageDexDataLoader.getOverride(b.name()).nodeItem();
         if (ov.isPresent()) {
-            if (Registries.ITEM.containsId(ov.get()))
-                return new ItemStack(Registries.ITEM.get(ov.get()));
-            if (Registries.BLOCK.containsId(ov.get())) {
-                net.minecraft.item.Item asItem = Registries.BLOCK.get(ov.get()).asItem();
-                if (asItem != net.minecraft.item.Items.AIR) return new ItemStack(asItem);
-                // Block has no item form — try item registry with same ID anyway
-                return new ItemStack(Registries.BLOCK.get(ov.get()));
-            }
+            return vdx$resolveItem(ov.get());
         }
         for (Identifier id : b.requirements().keySet()) {
             ItemStack stack = vdx$reqIcon(id);
             if (!stack.isEmpty()) return stack;
         }
+        return ItemStack.EMPTY;
+    }
+
+    @Unique private ItemStack vdx$resolveItem(Identifier id) {
+        // 1. Direct item registry
+        if (Registries.ITEM.containsId(id))
+            return new ItemStack(Registries.ITEM.get(id));
+        // 2. Block registry -> asItem()
+        if (Registries.BLOCK.containsId(id)) {
+            net.minecraft.item.Item asItem = Registries.BLOCK.get(id).asItem();
+            if (asItem != net.minecraft.item.Items.AIR)
+                return new ItemStack(asItem);
+        }
+        // 3. Try alternate ID: some mods register block as "x_block" but item as "x"
+        String path = id.getPath();
+        if (path.endsWith("_block")) {
+            Identifier alt = Identifier.of(id.getNamespace(), path.substring(0, path.length() - 6));
+            if (Registries.ITEM.containsId(alt)) return new ItemStack(Registries.ITEM.get(alt));
+        }
+        // 4. Try adding "_block" suffix
+        Identifier altBlock = Identifier.of(id.getNamespace(), path + "_block");
+        if (Registries.ITEM.containsId(altBlock)) return new ItemStack(Registries.ITEM.get(altBlock));
         return ItemStack.EMPTY;
     }
 
