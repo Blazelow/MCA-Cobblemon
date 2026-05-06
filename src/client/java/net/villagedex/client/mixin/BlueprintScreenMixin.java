@@ -269,7 +269,7 @@ public abstract class BlueprintScreenMixin extends Screen {
         Identifier itemId = switch (u) {
             case 8  -> Identifier.of("cobblemon", "healing_machine");
             case 9  -> Identifier.of("cobblemon", "display_case");
-            case 10 -> Identifier.of("cobblemon", "pasture_block");
+            case 10 -> Identifier.of("cobblemon", "pasture");
             default -> null;
         };
         if (itemId == null) return;
@@ -436,15 +436,17 @@ public abstract class BlueprintScreenMixin extends Screen {
             if (asItem != net.minecraft.item.Items.AIR)
                 return new ItemStack(asItem);
         }
-        // 3. Try alternate ID: some mods register block as "x_block" but item as "x"
+        // 3. Strip _block suffix (e.g. cobblemon:pasture_block -> cobblemon:pasture)
         String path = id.getPath();
         if (path.endsWith("_block")) {
             Identifier alt = Identifier.of(id.getNamespace(), path.substring(0, path.length() - 6));
             if (Registries.ITEM.containsId(alt)) return new ItemStack(Registries.ITEM.get(alt));
         }
-        // 4. Try adding "_block" suffix
+        // 4. Add _block suffix
         Identifier altBlock = Identifier.of(id.getNamespace(), path + "_block");
         if (Registries.ITEM.containsId(altBlock)) return new ItemStack(Registries.ITEM.get(altBlock));
+        // 5. Log missing item for debugging
+        net.villagedex.client.VillageDexClient.LOGGER.warn("VillageDex: could not resolve item for {}", id);
         return ItemStack.EMPTY;
     }
 
